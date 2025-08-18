@@ -1,0 +1,70 @@
+networks:
+  ollama:
+    name: ollama
+  traefik_apps:
+    name: traefik-apps
+    external: true
+
+services:
+  ollama:
+    container_name: ollama
+    image: ollama/ollama:latest
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - OLLAMA_KEEP_ALIVE=24h
+    volumes:
+      - ./ollama-data:/root/.ollama
+    networks:
+      - ollama
+      - traefik_apps
+    devices:
+      - "nvidia.com/gpu=all" # CDI
+    ports:
+      - 127.0.0.1:7869:11434
+    healthcheck:
+      test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
+      interval: 15s
+      timeout: 5s
+      retries: 10
+      start_period: 45s
+
+  open-webui:
+    container_name: open-webui
+    image: ghcr.io/open-webui/open-webui:latest
+    restart: unless-stopped
+    env_file: .env
+    environment:
+      - OLLAMA_API_URL=http://ollama:11434
+      - OLLAMA_BASE_URL=http://ollama:11434
+      - WEBUI_NAME=Skala AI
+      - WEBUI_URL=https://ai.${DOMAIN}
+    volumes:
+      - ./openwebui-data:/app/backend/data
+    depends_on:
+      ollama:
+        condition: service_healthy
+    networks:
+      - ollama
+      - traefik_apps
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-apps"
+      - "traefik.http.routers.openwebui.rule=Host(`ai.${DOMAIN}`)"
+      - "traefik.http.routers.openwebui.entrypoints=websecure"
+      - "traefik.http.routers.openwebui.tls=true"
+      - "traefik.http.routers.openwebui.tls.certresolver=cloudflare"
+      - "traefik.http.services.openwebui.loadbalancer.server.port=8080"
+      - "traefik.http.routers.openwebui.middlewares=ow-rl"
+      - "traefik.http.middlewares.ow-rl.ratelimit.average=50"
+      - "traefik.http.middlewares.ow-rl.ratelimit.burst=100"
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "curl -fsS --max-time 5 http://127.0.0.1:8080/health || exit 1",
+        ]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
