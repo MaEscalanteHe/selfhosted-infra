@@ -64,7 +64,7 @@ services:
     environment:
       FIREWALL: on
       FIREWALL_INPUT_PORTS: 5680
-      # You need to check this subnets manually
+      # You need to check these subnets manually
       FIREWALL_OUTBOUND_SUBNETS: 172.18.0.0/16,172.21.0.0/16
       DNS_ADDRESS: 127.0.0.11
       VPN_SERVICE_PROVIDER: nordvpn
