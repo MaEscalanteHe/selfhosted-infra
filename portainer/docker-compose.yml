@@ -1,0 +1,29 @@
+networks:
+  portainer:
+    name: portainer
+
+services:
+  portainer:
+    container_name: portainer
+    image: portainer/portainer-ce:alpine
+    restart: unless-stopped
+    volumes:
+      - /var/run/docker.sock:/var/run/docker.sock:ro
+      - ./data:/data
+      - ./certs:/certs:ro
+    environment:
+      TZ: America/Caracas
+    command: |
+      --sslcert /certs/portainer.crt
+      --sslkey /certs/portainer.key
+    ports:
+      - 127.0.0.1:9443:9443
+    networks:
+      - portainer
+    healthcheck:
+      test: ["CMD", "wget", "-q", "--spider", "http://localhost:9000"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 30s
+
