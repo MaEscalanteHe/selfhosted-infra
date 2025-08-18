@@ -1,0 +1,141 @@
+networks:
+  n8n:
+    name: n8n
+  traefik_apps:
+    name: traefik-apps
+    external: true
+
+x-n8n-shared: &n8n-shared
+  image: n8nio/n8n:latest
+  restart: unless-stopped
+  env_file: .env
+  environment: &n8n-env
+    DB_TYPE: postgresdb
+    DB_POSTGRESDB_HOST: postgres
+    DB_POSTGRESDB_PORT: 5432
+    DB_POSTGRESDB_DATABASE: ${POSTGRES_DB}
+    DB_POSTGRESDB_USER: ${POSTGRES_NON_ROOT_USER}
+    DB_POSTGRESDB_PASSWORD: ${POSTGRES_NON_ROOT_PASSWORD}
+    EXECUTIONS_MODE: queue
+    QUEUE_BULL_REDIS_HOST: redis
+    QUEUE_HEALTH_CHECK_ACTIVE: true
+    N8N_BASIC_AUTH_HASH: true
+    N8N_EDITOR_BASE_URL: https://n8n.${DOMAIN}
+    N8N_PORT: 5678
+    N8N_PROTOCOL: https
+    N8N_HOST: n8n.${DOMAIN}
+    N8N_PROXY_HOPS: 1
+    N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: true
+    N8N_RUNNERS_ENABLED: true
+    OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS: true
+    WEBHOOK_URL: https://n8n.${DOMAIN}/
+    GENERIC_TIMEZONE: America/Caracas
+    N8N_DIAGNOSTICS_ENABLED: false
+  # Required to connect through VPN
+  network_mode: "service:gluetun"
+  volumes:
+    - ./n8n-data:/home/node/.n8n
+  depends_on:
+    gluetun:
+      condition: service_healthy
+    redis:
+      condition: service_healthy
+    postgres:
+      condition: service_healthy
+  healthcheck:
+    test:
+      [
+        "CMD-SHELL",
+        "wget -q --spider --timeout=3 --tries=5 http://127.0.0.1:5678/healthz || exit 1",
+      ]
+    interval: 30s
+    timeout: 10s
+    start_period: 20s
+    retries: 3
+
+services:
+  gluetun:
+    container_name: n8n-gluetun
+    image: qmcgaw/gluetun:latest
+    restart: always
+    cap_add:
+      - NET_ADMIN
+    env_file: .env
+    environment:
+      FIREWALL: on
+      FIREWALL_INPUT_PORTS: 5680
+      # You need to check this subnets manually
+      FIREWALL_OUTBOUND_SUBNETS: 172.18.0.0/16,172.21.0.0/16
+      DNS_ADDRESS: 127.0.0.11
+      VPN_SERVICE_PROVIDER: nordvpn
+      VPN_TYPE: wireguard
+      SERVER_CITIES: Madrid
+    networks:
+      - n8n
+      - traefik_apps
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "wget -qO- --timeout=5 http://127.0.0.1:9999/health || exit 1",
+        ]
+      interval: 30s
+      timeout: 10s
+      start_period: 20s
+      retries: 3
+    labels:
+      - "traefik.enable=true"
+      - "traefik.docker.network=traefik-apps"
+      - "traefik.http.routers.n8n.rule=Host(`n8n.${DOMAIN}`)"
+      - "traefik.http.routers.n8n.entrypoints=websecure"
+      - "traefik.http.routers.n8n.tls=true"
+      - "traefik.http.routers.n8n.tls.certresolver=cloudflare"
+      - "traefik.http.services.n8n.loadbalancer.server.port=5680"
+
+  postgres:
+    container_name: n8n-postgres
+    image: postgres:16
+    restart: always
+    env_file: .env
+    volumes:
+      - ./db-data:/var/lib/postgresql/data
+      - ./init-data.sh:/docker-entrypoint-initdb.d/init-data.sh
+    networks:
+      - n8n
+    healthcheck:
+      test:
+        [
+          "CMD-SHELL",
+          "pg_isready -h localhost -U ${POSTGRES_USER} -d ${POSTGRES_DB}",
+        ]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  redis:
+    container_name: n8n-redis
+    image: redis:8-alpine
+    restart: always
+    volumes:
+      - ./redis-data:/data
+    networks:
+      - n8n
+    healthcheck:
+      test: ["CMD", "redis-cli", "ping"]
+      interval: 5s
+      timeout: 5s
+      retries: 10
+
+  n8n:
+    <<: *n8n-shared
+    container_name: n8n
+    environment:
+      <<: *n8n-env
+      N8N_PORT: 5680
+
+  n8n-worker:
+    <<: *n8n-shared
+    container_name: n8n-worker
+    command: worker
+    depends_on:
+      - n8n
