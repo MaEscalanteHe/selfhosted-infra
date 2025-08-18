@@ -14,7 +14,7 @@ services:
     environment:
       - OLLAMA_KEEP_ALIVE=24h
     volumes:
-      - ./ollama-data:/root/.ollama
+      - ./data/ollama:/root/.ollama
     networks:
       - ollama
       - traefik_apps
@@ -40,7 +40,7 @@ services:
       - WEBUI_NAME=Skala AI
       - WEBUI_URL=https://ai.${DOMAIN}
     volumes:
-      - ./openwebui-data:/app/backend/data
+      - ./data/openwebui:/app/backend/data
     depends_on:
       ollama:
         condition: service_healthy

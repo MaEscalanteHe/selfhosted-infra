@@ -1,6 +1,4 @@
 .env
-ollama-data/**
-openwebui-data/**
+data/**
 
-!ollama-data/.gitkeep
-!openwebui-data/.gitkeep
+!data/.gitkeep
