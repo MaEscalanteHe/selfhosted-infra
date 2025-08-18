@@ -12,24 +12,11 @@ services:
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./letsencrypt/:/letsencrypt
+      - ./traefik.yml:/etc/traefik/traefik.yml:ro
+      - ./dynamic.yml:/etc/traefik/dynamic.yml:ro
     env_file: .env
-    command:
-      - --ping=true
-      - --api.dashboard=true
-      - --api.insecure=false
-      - --providers.docker=true
-      - --providers.docker.exposedbydefault=false
-      - --entrypoints.web.address=:80
-      - --entrypoints.web.http.redirections.entrypoint.to=websecure
-      - --entrypoints.web.http.redirections.entrypoint.scheme=https
-      - --entrypoints.websecure.address=:443
-      - --entrypoints.websecure.http.tls=true
-      - --entrypoints.websecure.http.tls.certResolver=cloudflare
-      - --certificatesresolvers.cloudflare.acme.dnschallenge=true
-      - --certificatesresolvers.cloudflare.acme.dnschallenge.provider=cloudflare
-      - --certificatesresolvers.cloudflare.acme.dnschallenge.delaybeforecheck=0
-      - --certificatesresolvers.cloudflare.acme.email=${ACME_EMAIL}
-      - --certificatesresolvers.cloudflare.acme.storage=/letsencrypt/acme.json
+    environment:
+      - TRAEFIK_CERTIFICATESRESOLVERS_CLOUDFLARE_ACME_EMAIL=${ACME_EMAIL}
     networks:
       - traefik_tunnel
       - traefik_apps
@@ -45,6 +32,7 @@ services:
       retries: 3
     labels:
       - "traefik.enable=true"
+      # Traefik Dashboard
       - "traefik.http.routers.api.rule=Host(`traefik.${DOMAIN}`)"
       - "traefik.http.routers.api.entrypoints=websecure"
       - "traefik.http.routers.api.tls=true"
@@ -57,7 +45,9 @@ services:
     container_name: cfd-tunnel
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
-    command: tunnel --metrics 127.0.0.1:60123 --no-autoupdate run --token ${CF_TUNNEL_TOKEN}
+    environment:
+      - TUNNEL_TOKEN=${CF_TUNNEL_TOKEN}
+    command: tunnel --metrics 127.0.0.1:60123 --no-autoupdate run
     networks:
       - traefik_tunnel
     healthcheck:
@@ -72,5 +62,5 @@ services:
         ]
       interval: 30s
       timeout: 10s
+      start_period: 20s
       retries: 3
-      start_period: 15s
