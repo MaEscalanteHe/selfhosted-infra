@@ -1,9 +1,5 @@
-n8n-data/**
-db-data/**
-redis-data/**
-
 .env
+data/**
 
-!db-data/.gitkeep
-!n8n-data/.gitkeep
-!redis-data/.gitkeep
+
+!data/.gitkeep
