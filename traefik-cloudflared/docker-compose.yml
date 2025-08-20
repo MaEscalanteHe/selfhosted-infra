@@ -42,8 +42,6 @@ services:
       # Traefik Dashboard
       - "traefik.http.routers.api.rule=Host(`traefik.${DOMAIN}`)"
       - "traefik.http.routers.api.entrypoints=websecure"
-      - "traefik.http.routers.api.tls=true"
-      - "traefik.http.routers.api.tls.certresolver=cloudflare"
       - "traefik.http.routers.api.service=api@internal"
       - "traefik.http.routers.api.middlewares=auth"
       # - "traefik.http.routers.api.middlewares=auth,crowdsec@docker"
