@@ -1,6 +1,9 @@
 networks:
   traefik_tunnel:
     name: traefik-tunnel
+    # ipam:
+    #   config:
+    #     - subnet: 172.19.0.0/24
   traefik_apps:
     name: traefik-apps
 
@@ -40,7 +43,14 @@ services:
       - "traefik.http.routers.api.tls.certresolver=cloudflare"
       - "traefik.http.routers.api.service=api@internal"
       - "traefik.http.routers.api.middlewares=auth"
+      # - "traefik.http.routers.api.middlewares=auth,crowdsec@docker"
       - "traefik.http.middlewares.auth.basicauth.users=${DASHBOARD_AUTH}"
+      # Crowdsec Middleware
+      # - "traefik.http.middlewares.crowdsec.plugin.crowdsec-bouncer.crowdsecMode=stream"
+      # - "traefik.http.middlewares.crowdsec.plugin.crowdsec-bouncer.crowdsecLapiUrl=http://crowdsec:8080"
+      # - "traefik.http.middlewares.crowdsec.plugin.crowdsec-bouncer.crowdsecLapiKey=${CROWDSEC_BOUNCER_KEY}"
+      # - "traefik.http.middlewares.crowdsec.plugin.crowdsec-bouncer.forwardedHeadersCustomName=CF-Connecting-IP"
+      # - "traefik.http.middlewares.crowdsec.plugin.crowdsec-bouncer.forwardedHeadersTrustedIPs=172.19.0.0/24" # CIDR of the traefik_tunnel network
 
   cloudflared:
     container_name: cfd-tunnel
@@ -65,3 +75,19 @@ services:
       timeout: 10s
       start_period: 20s
       retries: 3
+
+  # crowdsec:
+  #   container_name: crowdsec
+  #   image: crowdsecurity/crowdsec:latest
+  #   restart: unless-stopped
+  #   volumes:
+  #     - ./data/crowdsec/data:/var/lib/crowdsec/data
+  #     - ./data/crowdsec/config:/etc/crowdsec
+  #     - ./acquis.yaml:/etc/crowdsec/acquis.yaml
+  #     - ./logs/traefik:/var/log/traefik:ro
+  #   networks:
+  #     - traefik_apps
+  #   depends_on:
+  #     - traefik
+  #   environment:
+  #     - COLLECTIONS=crowdsecurity/traefik
