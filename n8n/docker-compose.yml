@@ -1,9 +1,12 @@
 networks:
   n8n:
     name: n8n
+    ipam:
+      config:
+        - subnet: 172.102.0.0/24
   traefik_apps:
     name: traefik-apps
-    external: true
+    external: true # 172.101.0.0/24
 
 x-n8n-shared: &n8n-shared
   image: n8nio/n8n:latest
@@ -19,16 +22,16 @@ x-n8n-shared: &n8n-shared
     EXECUTIONS_MODE: queue
     QUEUE_BULL_REDIS_HOST: redis
     QUEUE_HEALTH_CHECK_ACTIVE: true
-    N8N_BASIC_AUTH_HASH: true
+    N8N_BASIC_AUTH_ACTIVE: true
     N8N_EDITOR_BASE_URL: https://n8n.${DOMAIN}
     N8N_PORT: 5678
     N8N_PROTOCOL: https
     N8N_HOST: n8n.${DOMAIN}
-    N8N_PROXY_HOPS: 1
+    N8N_PROXY_HOPS: 2
     N8N_ENFORCE_SETTINGS_FILE_PERMISSIONS: true
     N8N_RUNNERS_ENABLED: true
     OFFLOAD_MANUAL_EXECUTIONS_TO_WORKERS: true
-    WEBHOOK_URL: https://n8n.${DOMAIN}/
+    WEBHOOK_URL: https://n8n.${DOMAIN}
     GENERIC_TIMEZONE: America/Caracas
     N8N_DIAGNOSTICS_ENABLED: false
   # Required to connect through VPN
@@ -64,8 +67,7 @@ services:
     environment:
       FIREWALL: on
       FIREWALL_INPUT_PORTS: 5680
-      # You need to check these subnets manually
-      FIREWALL_OUTBOUND_SUBNETS: 172.18.0.0/16,172.21.0.0/16
+      FIREWALL_OUTBOUND_SUBNETS: 172.101.0.0/24,172.102.0.0/24 # Traefik and n8n subnets
       DNS_ADDRESS: 127.0.0.11
       VPN_SERVICE_PROVIDER: nordvpn
       VPN_TYPE: wireguard
@@ -88,8 +90,6 @@ services:
       - "traefik.docker.network=traefik-apps"
       - "traefik.http.routers.n8n.rule=Host(`n8n.${DOMAIN}`)"
       - "traefik.http.routers.n8n.entrypoints=websecure"
-      - "traefik.http.routers.n8n.tls=true"
-      - "traefik.http.routers.n8n.tls.certresolver=cloudflare"
       - "traefik.http.services.n8n.loadbalancer.server.port=5680"
 
   postgres:
@@ -137,5 +137,8 @@ services:
     <<: *n8n-shared
     container_name: n8n-worker
     command: worker
+    environment:
+      <<: *n8n-env
+      N8N_RUNNERS_BROKER_PORT: "5681"
     depends_on:
       - n8n
