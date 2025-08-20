@@ -17,6 +17,8 @@ entryPoints:
     http:
       tls:
         certResolver: cloudflare
+      middlewares:
+        - compress@file
 
 providers:
   docker:
