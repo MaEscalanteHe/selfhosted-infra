@@ -3,4 +3,6 @@ data/**
 logs/**
 
 !data/.gitkeep
+!data/letsencrypt
+!data/letsencrypt/.gitkeep
 !logs/.gitkeep

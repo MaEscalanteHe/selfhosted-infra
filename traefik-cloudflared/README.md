@@ -17,7 +17,17 @@ traefik-cloudflared/
 
 ## Setup Instructions
 
-1. **Start the Service**
+1. **Create the `acme.json` File**
+   Before starting the service, create an empty `acme.json` file in the `letsencrypt` directory and set the correct permissions:
+
+   ```bash
+   touch letsencrypt/acme.json
+   chmod 600 letsencrypt/acme.json
+   ```
+
+   This file is required for storing Let's Encrypt certificates securely.
+
+2. **Start the Service**
    Use Docker Compose to start the Traefik and Cloudflared services:
 
    ```bash
@@ -26,10 +36,10 @@ traefik-cloudflared/
 
    This will start the services in detached mode.
 
-2. **Configure DNS Records**
+3. **Configure DNS Records**
    Set up the necessary DNS records in your Cloudflare account to route traffic to your services.
 
-3. **Access the Services**
+4. **Access the Services**
    Open your browser and navigate to the domain you configured in Cloudflare to access your services.
 
 ## Troubleshooting
