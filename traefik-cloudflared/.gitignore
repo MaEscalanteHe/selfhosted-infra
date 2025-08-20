@@ -1,4 +1,8 @@
 .env
-letsencrypt/**
+data/**
+logs/**
 
-!letsencrypt/.gitkeep
+!data/.gitkeep
+!data/letsencrypt/
+!data/letsencrypt/acme.json
+!logs/.gitkeep
