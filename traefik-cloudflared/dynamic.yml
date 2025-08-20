@@ -2,6 +2,7 @@ http:
   middlewares:
     compress:
       compress:
+        minResponseBodyBytes: 1024
         includedContentTypes:
           - application/json
           - text/html
