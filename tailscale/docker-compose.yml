@@ -1,6 +1,9 @@
 networks:
   tailscale:
     name: tailscale
+    ipam:
+      config:
+        - subnet: 172.105.0.0/24
 
 services:
   tailscale:
