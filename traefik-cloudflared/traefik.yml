@@ -14,9 +14,9 @@ entryPoints:
           scheme: https
   websecure:
     address: ":443"
-    # forwardedHeaders:
-    #   trustedIPs:
-    #     - 172.19.0.0/24 # CIDR of the traefik_tunnel network
+    forwardedHeaders:
+      trustedIPs:
+        - "172.100.0.0/29" # CIDR of the cloudflare_tunnel network
     http:
       tls:
         certResolver: cloudflare
