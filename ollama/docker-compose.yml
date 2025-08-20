@@ -1,9 +1,12 @@
 networks:
   ollama:
     name: ollama
+    ipam:
+      config:
+        - subnet: 172.103.0.0/24
   traefik_apps:
     name: traefik-apps
-    external: true
+    external: true # 172.101.0.0/24
 
 services:
   ollama:
@@ -20,8 +23,6 @@ services:
       - traefik_apps
     devices:
       - "nvidia.com/gpu=all" # CDI
-    ports:
-      - 127.0.0.1:7869:11434
     healthcheck:
       test: ["CMD-SHELL", "ollama list >/dev/null 2>&1 || exit 1"]
       interval: 15s
@@ -37,7 +38,6 @@ services:
     environment:
       - OLLAMA_API_URL=http://ollama:11434
       - OLLAMA_BASE_URL=http://ollama:11434
-      - WEBUI_NAME=Skala AI
       - WEBUI_URL=https://ai.${DOMAIN}
       - USE_CUDA_DOCKER=True
     devices:
@@ -55,8 +55,6 @@ services:
       - "traefik.docker.network=traefik-apps"
       - "traefik.http.routers.openwebui.rule=Host(`ai.${DOMAIN}`)"
       - "traefik.http.routers.openwebui.entrypoints=websecure"
-      - "traefik.http.routers.openwebui.tls=true"
-      - "traefik.http.routers.openwebui.tls.certresolver=cloudflare"
       - "traefik.http.services.openwebui.loadbalancer.server.port=8080"
       - "traefik.http.routers.openwebui.middlewares=ow-rl"
       - "traefik.http.middlewares.ow-rl.ratelimit.average=50"
