@@ -21,6 +21,7 @@ entryPoints:
       tls:
         certResolver: cloudflare
       middlewares:
+        - crowdsec@file
         - compress@file
 
 providers:
@@ -49,8 +50,9 @@ log:
 accessLog:
   format: json
   filePath: /var/log/traefik/access.log
-# experimental:
-#   plugins:
-#     crowdsec-bouncer:
-#       moduleName: "github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin"
-#       version: "v1.4.4"
+
+experimental:
+  plugins:
+    bouncer:
+      moduleName: "github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin"
+      version: "v1.4.4"

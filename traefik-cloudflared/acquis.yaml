@@ -1,4 +1,5 @@
 filenames:
-  - /var/log/traefik/access.log
+  - /var/log/traefik/*.log
+poll_without_inotify: true
 labels:
   type: traefik

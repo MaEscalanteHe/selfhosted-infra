@@ -1,5 +1,9 @@
 http:
   middlewares:
+    auth:
+      basicAuth:
+        users:
+          - '{{ env "DASHBOARD_AUTH" }}'
     compress:
       compress:
         minResponseBodyBytes: 1024
@@ -7,3 +11,14 @@ http:
           - application/json
           - text/html
           - text/plain
+    crowdsec:
+      plugin:
+        bouncer:
+          enabled: true
+          logLevel: INFO
+          crowdsecMode: stream
+          crowdsecLapiHost: crowdsec:8080
+          crowdsecLapiKey: '{{ env "CROWDSEC_BOUNCER_KEY" }}'
+          forwardedHeadersCustomName: CF-Connecting-IP
+          forwardedHeadersTrustedIPs:
+            - "172.100.0.0/29" # CIDR of the cloudflare_tunnel network

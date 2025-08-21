@@ -39,19 +39,10 @@ services:
       retries: 3
     labels:
       - "traefik.enable=true"
-      # Traefik Dashboard
       - "traefik.http.routers.api.rule=Host(`traefik.${DOMAIN}`)"
       - "traefik.http.routers.api.entrypoints=websecure"
       - "traefik.http.routers.api.service=api@internal"
-      - "traefik.http.routers.api.middlewares=auth"
-      # - "traefik.http.routers.api.middlewares=auth,crowdsec@docker"
-      - "traefik.http.middlewares.auth.basicauth.users=${DASHBOARD_AUTH}"
-      # Crowdsec Middleware
-      # - "traefik.http.middlewares.crowdsec.plugin.crowdsec-bouncer.crowdsecMode=stream"
-      # - "traefik.http.middlewares.crowdsec.plugin.crowdsec-bouncer.crowdsecLapiUrl=http://crowdsec:8080"
-      # - "traefik.http.middlewares.crowdsec.plugin.crowdsec-bouncer.crowdsecLapiKey=${CROWDSEC_BOUNCER_KEY}"
-      # - "traefik.http.middlewares.crowdsec.plugin.crowdsec-bouncer.forwardedHeadersCustomName=CF-Connecting-IP"
-      # - "traefik.http.middlewares.crowdsec.plugin.crowdsec-bouncer.forwardedHeadersTrustedIPs=172.19.0.0/24" # CIDR of the traefik_tunnel network
+      - "traefik.http.routers.api.middlewares=auth@file"
 
   cloudflared:
     container_name: cloudflared
@@ -77,18 +68,24 @@ services:
       start_period: 20s
       retries: 3
 
-  # crowdsec:
-  #   container_name: crowdsec
-  #   image: crowdsecurity/crowdsec:latest
-  #   restart: unless-stopped
-  #   volumes:
-  #     - ./data/crowdsec/data:/var/lib/crowdsec/data
-  #     - ./data/crowdsec/config:/etc/crowdsec
-  #     - ./acquis.yaml:/etc/crowdsec/acquis.yaml
-  #     - ./logs/traefik:/var/log/traefik:ro
-  #   networks:
-  #     - traefik_apps
-  #   depends_on:
-  #     - traefik
-  #   environment:
-  #     - COLLECTIONS=crowdsecurity/traefik
+  crowdsec:
+    container_name: crowdsec
+    image: crowdsecurity/crowdsec:latest
+    restart: unless-stopped
+    volumes:
+      - ./data/crowdsec/data:/var/lib/crowdsec/data
+      - ./data/crowdsec/etc:/etc/crowdsec
+      - ./acquis.yaml:/etc/crowdsec/acquis.yaml:ro
+      - ./logs/traefik:/var/log/traefik:ro
+    networks:
+      - traefik_apps
+    depends_on:
+      - traefik
+    environment:
+      - COLLECTIONS=crowdsecurity/traefik crowdsecurity/http-cve crowdsecurity/whitelist-good-actors crowdsecurity/iptables crowdsecurity/linux
+    healthcheck:
+      test: ["CMD-SHELL", "cscli metrics >/dev/null 2>&1 || exit 1"]
+      interval: 30s
+      timeout: 10s
+      retries: 3
+      start_period: 20s
