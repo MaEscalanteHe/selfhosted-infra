@@ -23,15 +23,47 @@ services:
         reservations:
           memory: 256M
           cpus: "0.25"
+    command:
+      # API
+      - --api.dashboard=true
+      - --api.insecure=false
+      - --ping=true
+      # Entry Points
+      - --entrypoints.web.address=:80
+      - --entrypoints.web.http.redirections.entrypoint.to=websecure
+      - --entrypoints.web.http.redirections.entrypoint.scheme=https
+      - --entrypoints.websecure.address=:443
+      - --entrypoints.websecure.forwardedHeaders.trustedIPs=172.100.0.0/29 # CIDR of the cloudflare_tunnel network
+      - --entrypoints.websecure.http.tls.certResolver=cloudflare
+      - --entrypoints.websecure.http.middlewares=crowdsec@file,compress@file
+      # Providers
+      - --providers.docker=true
+      - --providers.docker.exposedByDefault=false
+      - --providers.file.filename=/etc/traefik/dynamic.yml
+      - --providers.file.watch=true
+      # Certificate Resolvers
+      - --certificatesresolvers.cloudflare.acme.email=${ACME_EMAIL}
+      - --certificatesresolvers.cloudflare.acme.storage=/letsencrypt/acme.json
+      - --certificatesresolvers.cloudflare.acme.keyType=EC384
+      - --certificatesresolvers.cloudflare.acme.dnschallenge=true
+      - --certificatesresolvers.cloudflare.acme.dnschallenge.provider=cloudflare
+      - --certificatesresolvers.cloudflare.acme.dnschallenge.propagation.delaybeforechecks=30s
+      - --certificatesresolvers.cloudflare.acme.dnschallenge.resolvers=1.1.1.1:53,8.8.8.8:53,9.9.9.9:53
+      # Logging
+      - --log.level=INFO
+      - --log.format=json
+      - --log.filePath=/var/log/traefik/traefik.log
+      - --accesslog.format=json
+      - --accesslog.filepath=/var/log/traefik/access.log
+      # Experimental
+      - --experimental.plugins.bouncer.modulename=github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin
+      - --experimental.plugins.bouncer.version=v1.4.4
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./data/letsencrypt/:/letsencrypt
-      - ./traefik.yml:/etc/traefik/traefik.yml:ro
       - ./dynamic.yml:/etc/traefik/dynamic.yml:ro
       - ./logs/traefik:/var/log/traefik
     env_file: .env
-    environment:
-      - TRAEFIK_CERTIFICATESRESOLVERS_CLOUDFLARE_ACME_EMAIL=${ACME_EMAIL}
     networks:
       - cloudflare_tunnel
       - traefik_apps
