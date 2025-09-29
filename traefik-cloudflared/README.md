@@ -36,10 +36,23 @@ traefik-cloudflared/
 
    This will start the services in detached mode.
 
-3. **Configure DNS Records**
+3. **Configure CrowdSec Bouncer**
+   After the first initialization, you need to create a bouncer key for Traefik to communicate with CrowdSec:
+
+   ```bash
+   docker exec -it crowdsec cscli bouncers add traefik-bouncer -o raw
+   ```
+
+   Copy the generated key and add it to your `.env` file as `CROWDSEC_BOUNCER_KEY`. Then restart the services:
+
+   ```bash
+   docker-compose restart traefik
+   ```
+
+4. **Configure DNS Records**
    Set up the necessary DNS records in your Cloudflare account to route traffic to your services.
 
-4. **Access the Services**
+5. **Access the Services**
    Open your browser and navigate to the domain you configured in Cloudflare to access your services.
 
 ## Troubleshooting

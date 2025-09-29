@@ -15,6 +15,14 @@ services:
     container_name: traefik
     image: traefik:latest
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+        reservations:
+          memory: 256M
+          cpus: "0.25"
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./data/letsencrypt/:/letsencrypt
@@ -27,16 +35,19 @@ services:
     networks:
       - cloudflare_tunnel
       - traefik_apps
+    depends_on:
+      crowdsec:
+        condition: service_healthy
     healthcheck:
       test:
         [
           "CMD-SHELL",
           "wget -qO- --timeout=5 http://127.0.0.1:8080/ping | grep -q OK || exit 1",
         ]
-      interval: 30s
-      timeout: 10s
-      start_period: 20s
+      interval: 60s
+      timeout: 15s
       retries: 3
+      start_period: 30s
     labels:
       - "traefik.enable=true"
       - "traefik.http.routers.api.rule=Host(`traefik.${DOMAIN}`)"
@@ -48,6 +59,14 @@ services:
     container_name: cloudflared
     image: cloudflare/cloudflared:latest
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 256M
+          cpus: "0.25"
+        reservations:
+          memory: 128M
+          cpus: "0.1"
     environment:
       - TUNNEL_TOKEN=${CF_TUNNEL_TOKEN}
     command: tunnel --metrics 127.0.0.1:60123 --no-autoupdate run
@@ -63,15 +82,23 @@ services:
           "127.0.0.1:60123",
           "ready",
         ]
-      interval: 30s
-      timeout: 10s
-      start_period: 20s
+      interval: 60s
+      timeout: 15s
       retries: 3
+      start_period: 30s
 
   crowdsec:
     container_name: crowdsec
     image: crowdsecurity/crowdsec:latest
     restart: unless-stopped
+    deploy:
+      resources:
+        limits:
+          memory: 512M
+          cpus: "0.5"
+        reservations:
+          memory: 256M
+          cpus: "0.25"
     volumes:
       - ./data/crowdsec/data:/var/lib/crowdsec/data
       - ./data/crowdsec/etc:/etc/crowdsec
@@ -79,13 +106,13 @@ services:
       - ./logs/traefik:/var/log/traefik:ro
     networks:
       - traefik_apps
-    depends_on:
-      - traefik
     environment:
       - COLLECTIONS=crowdsecurity/traefik crowdsecurity/http-cve crowdsecurity/whitelist-good-actors crowdsecurity/iptables crowdsecurity/linux
+      - LOG_LEVEL=info
+      - LOG_FORMAT=json
     healthcheck:
       test: ["CMD-SHELL", "cscli metrics >/dev/null 2>&1 || exit 1"]
-      interval: 30s
-      timeout: 10s
+      interval: 60s
+      timeout: 15s
       retries: 3
-      start_period: 20s
+      start_period: 30s

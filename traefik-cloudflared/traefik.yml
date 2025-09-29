@@ -34,14 +34,17 @@ providers:
 certificatesResolvers:
   cloudflare:
     acme:
+      email: "" # https://doc.traefik.io/traefik/getting-started/configuration-overview/#the-static-configuration
       storage: /letsencrypt/acme.json
       keyType: EC384
       dnsChallenge:
         provider: cloudflare
-        delayBeforeCheck: 0s
+        propagation:
+          delayBeforeChecks: 30s
         resolvers:
           - "1.1.1.1:53"
           - "8.8.8.8:53"
+          - "9.9.9.9:53"
 
 log:
   level: INFO
