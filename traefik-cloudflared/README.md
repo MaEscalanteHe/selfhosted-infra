@@ -49,10 +49,21 @@ traefik-cloudflared/
    docker-compose restart traefik
    ```
 
-4. **Configure DNS Records**
+4. **Configure CrowdSec Monitoring (Optional)**
+
+   Enroll your instance to the official CrowdSec Console:
+
+   ```bash
+   # Register at https://app.crowdsec.net/ to get an enrollment key
+   docker exec crowdsec cscli console enroll <your-enrollment-key>
+   ```
+
+   Access your dashboard at [https://app.crowdsec.net/](https://app.crowdsec.net/)
+
+5. **Configure DNS Records**
    Set up the necessary DNS records in your Cloudflare account to route traffic to your services.
 
-5. **Access the Services**
+6. **Access the Services**
    Open your browser and navigate to the domain you configured in Cloudflare to access your services.
 
 ## Troubleshooting

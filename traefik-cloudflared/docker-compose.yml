@@ -67,9 +67,6 @@ services:
     networks:
       - cloudflare_tunnel
       - traefik_apps
-    depends_on:
-      crowdsec:
-        condition: service_healthy
     healthcheck:
       test:
         [
@@ -138,6 +135,8 @@ services:
       - ./logs/traefik:/var/log/traefik:ro
     networks:
       - traefik_apps
+    depends_on:
+      - traefik
     environment:
       - COLLECTIONS=crowdsecurity/traefik crowdsecurity/http-cve crowdsecurity/whitelist-good-actors crowdsecurity/iptables crowdsecurity/linux
       - LOG_LEVEL=info
