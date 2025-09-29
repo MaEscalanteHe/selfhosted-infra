@@ -57,7 +57,7 @@ services:
       - --accesslog.filepath=/var/log/traefik/access.log
       # Experimental
       - --experimental.plugins.bouncer.modulename=github.com/maxlerebourg/crowdsec-bouncer-traefik-plugin
-      - --experimental.plugins.bouncer.version=v1.4.4
+      - --experimental.plugins.bouncer.version=v1.4.5
     volumes:
       - /var/run/docker.sock:/var/run/docker.sock:ro
       - ./data/letsencrypt/:/letsencrypt
